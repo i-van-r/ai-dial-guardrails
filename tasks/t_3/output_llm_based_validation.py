@@ -24,26 +24,103 @@ PROFILE = """
 **Annual Income:** $112,800  
 """
 
-VALIDATION_PROMPT = """NEED TO WRITE IT"""
+VALIDATION_PROMPT = """
+You are an output security validator. Review the assistant's generated response to determine whether it includes any personally identifiable information (PII) other than NAME, PHONE NUMBER, or EMAIL ADDRESS.
+If you detect any direct/indirect disclosure of restricted PII (SSN, address, date of birth, driver's license, credit card, bank account, occupation, income, etc.), mark the output as a leak.
+Provide your decision strictly in this format:
+{{
+  "is_leak": true | false,
+  "reason": "<short reason if leak detected, or empty>"
+}}
 
-FILTER_SYSTEM_PROMPT = """NEED TO WRITE IT"""
+Response to validate:
+{output}
+"""
+
+FILTER_SYSTEM_PROMPT = """
+You are a guardrail filter. Your task is to rewrite the response so that it excludes any PII except name, phone number, or email address.
+Remove or redact any leaked sensitive personal or financial details, including: SSN, address, date of birth, driver's license, credit card, bank account, occupation, income.
+If the original query cannot be answered without violating these restrictions, respond with: "Sorry, I am unable to provide that information due to privacy policy."
+"""
 
 #TODO 1:
 # Create AzureChatOpenAI client, model to use `gpt-4.1-nano-2025-04-14` (or any other mini or nano models)
 
-def validate(llm_output: str) :
-    #TODO 2:
-    # Make validation of LLM output to check leaks of PII
-    raise NotImplementedError
+from pydantic import BaseModel, Field
+
+class OutputValidationModel(BaseModel):
+    is_leak: bool = Field(description='True if leaked info detected, else False')
+    reason: str = Field(description='Short explanation for the decision, empty if not a leak')
+
+def validate(llm_output: str):
+    open_ai_client = AzureChatOpenAI(
+        temperature=0.0,
+        azure_deployment="gpt-4.1-nano-2025-04-14",
+        azure_endpoint=DIAL_URL,
+        api_key=SecretStr(API_KEY),
+        api_version=""
+    )
+    validation_prompt = ChatPromptTemplate.from_messages([
+        ("system", VALIDATION_PROMPT)
+    ])
+    parser = PydanticOutputParser(pydantic_object=OutputValidationModel)
+    chain = validation_prompt | open_ai_client | parser
+    result = chain.invoke({"output": llm_output})
+    return result
+
+def filter_response(original_response: str):
+    open_ai_client = AzureChatOpenAI(
+        temperature=0.0,
+        azure_deployment="gpt-4.1-nano-2025-04-14",
+        azure_endpoint=DIAL_URL,
+        api_key=SecretStr(API_KEY),
+        api_version=""
+    )
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", FILTER_SYSTEM_PROMPT),
+        ("human", original_response)
+    ])
+    response = open_ai_client.invoke(input=prompt.format())
+    return response.content
 
 def main(soft_response: bool):
-    #TODO 3:
-    # Create console chat with LLM, preserve history there.
-    # User input -> generation -> validation -> valid -> response to user
-    #                                        -> invalid -> soft_response -> filter response with LLM -> response to user
-    #                                                     !soft_response -> reject with description
-    raise NotImplementedError
+    open_ai_client = AzureChatOpenAI(
+        temperature=0.0,
+        azure_deployment='gpt-4.1-nano-2025-04-14',
+        azure_endpoint=DIAL_URL,
+        api_key=SecretStr(API_KEY),
+        api_version=""
+    )
+    history = []
+    while True:
+        user_input = input("\nInput user request for LLM (type 'exit' to quit)> ").strip()
+        if user_input.lower() in ("exit", "quit", "q", "end"):
+            print("Exiting...")
+            break
 
+        profile_and_input = f"USER INPUT: {user_input}\n===============\nDATABASE DATA:\n{PROFILE}"
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT + "\nConversation history:\n" + '\n'.join(history)),
+            HumanMessage(content=profile_and_input)
+        ]
+        response = open_ai_client.invoke(input=messages)
+        model_response = response.content
+
+        validation = validate(model_response)
+        if not validation.is_leak:
+            print(f"Response: {model_response}")
+            history.append(f"USER INPUT: {user_input}")
+            history.append(f"RESPONSE: {model_response}")
+        else:
+            if soft_response:
+                filtered = filter_response(model_response)
+                print(filtered)
+                history.append(f"USER INPUT: {user_input}")
+                history.append(f"Filtered Response: {filtered}")
+            else:
+                print(f"Blocked. Reason: {validation.reason}")
+                history.append(f"USER INPUT: {user_input}")
+                history.append(f"PII leak blocked. Reason: {validation.reason}")
 
 main(soft_response=False)
 
