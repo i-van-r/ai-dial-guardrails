@@ -43,18 +43,21 @@ Remove or redact any leaked sensitive personal or financial details, including: 
 If the original query cannot be answered without violating these restrictions, respond with: "Sorry, I am unable to provide that information due to privacy policy."
 """
 
-#CompletedTODO 1:
+# CompletedTODO 1:
 # Create AzureChatOpenAI client, model to use `gpt-4.1-nano-2025-04-14` (or any other mini or nano models)
 
 from pydantic import BaseModel, Field
+
 
 class OutputValidationModel(BaseModel):
     is_leak: bool = Field(description='True if leaked info detected, else False')
     reason: str = Field(description='Short explanation for the decision, empty if not a leak')
 
+
 def validate(llm_output: str):
     restricted = ["credit card", "ssn", "bank account", "address", "date of birth"]
     return {"is_leak": any(word in llm_output.lower() for word in restricted)}
+
 
 def filter_response(original_response: str):
     open_ai_client = AzureChatOpenAI(
@@ -70,6 +73,7 @@ def filter_response(original_response: str):
     ])
     response = open_ai_client.invoke(input=prompt.format())
     return response.content
+
 
 def main(soft_response: bool):
     open_ai_client = AzureChatOpenAI(
@@ -95,7 +99,7 @@ def main(soft_response: bool):
         model_response = response.content
 
         validation = validate(model_response)
-        if not validation.is_leak:
+        if not validation["is_leak"]:
             print(f"Response: {model_response}")
             history.append(f"USER INPUT: {user_input}")
             history.append(f"RESPONSE: {model_response}")
@@ -106,13 +110,15 @@ def main(soft_response: bool):
                 history.append(f"USER INPUT: {user_input}")
                 history.append(f"Filtered Response: {filtered}")
             else:
-                print(f"Blocked. Reason: {validation.reason}")
+                print(f"Blocked. Reason: {validation['reason']}")
                 history.append(f"USER INPUT: {user_input}")
-                history.append(f"PII leak blocked. Reason: {validation.reason}")
+                history.append(f"PII leak blocked. Reason: {validation['reason']}")
 
-main(soft_response=False)
 
-#CompletedTODO:
+if __name__ == "__main__":
+    main(soft_response=True)
+
+# CompletedTODO:
 # ---------
 # Create guardrail that will prevent leaks of PII (output guardrail).
 # Flow:

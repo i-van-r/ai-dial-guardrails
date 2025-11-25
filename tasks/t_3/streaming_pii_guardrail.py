@@ -212,7 +212,6 @@ PROFILE = """
 **Annual Income:** $112,800  
 """
 
-
 # CompletedTODO:
 # Create AzureChatOpenAI client, model to use `gpt-4.1-nano-2025-04-14` (or any other mini or nano models)
 
@@ -222,6 +221,7 @@ azure_llm = AzureChatOpenAI(
     azure_deployment="gpt-4.1-nano-2025-04-14",
     api_version="2023-12-01-preview"
 )
+
 
 def main():
     guardrail = PresidioStreamingPIIGuardrail()
@@ -247,7 +247,9 @@ def main():
         print("Input user request for LLM (type 'exit' to quit)> ", end="")
         user_input = input()
 
-main()
+
+if __name__ == "__main__":
+    main()
 
 # CompletedTODO:
 # ---------
