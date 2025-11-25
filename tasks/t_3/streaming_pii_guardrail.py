@@ -13,7 +13,7 @@ from tasks._constants import API_KEY, DIAL_URL
 class PresidioStreamingPIIGuardrail:
 
     def __init__(self, buffer_size: int = 100, safety_margin: int = 20):
-        # TODO:
+        # CompletedTODO:
         # 1. Create dict with language configurations: {"nlp_engine_name": "spacy","models": [{"lang_code": "en", "model_name": "en_core_web_sm"}]}
         #    Read more about it here: https://microsoft.github.io/presidio/tutorial/05_languages/
         # 2. Create NlpEngineProvider with created configurations
@@ -37,7 +37,7 @@ class PresidioStreamingPIIGuardrail:
         self.safety_margin = safety_margin
 
     def process_chunk(self, chunk: str) -> str:
-        # TODO:
+        # CompletedTODO:
         # 1. Check if chunk is present, if not then return chunk itself
         # 2. Accumulate chunk to `buffer`
         if not chunk:
@@ -55,7 +55,7 @@ class PresidioStreamingPIIGuardrail:
             self.buffer = self.buffer[safe_length:]
             return anonymized.text
         return ""
-        # TODO:
+        # CompletedTODO:
         # 1. Get results with analyzer by method analyze, text is `text_to_process`, language is 'en'
         # 2. Anonymize content, use anonymizer method anonymize with such params:
         #       - text=text_to_process
@@ -64,7 +64,7 @@ class PresidioStreamingPIIGuardrail:
         # 4. Return anonymized text
 
     def finalize(self) -> str:
-        # TODO:
+        # CompletedTODO:
         # 1. Check if `buffer` is present, otherwise return empty string
         # 2. Analyze `buffer`
         # 3. Anonymize `buffer` with analyzed results
@@ -213,7 +213,7 @@ PROFILE = """
 """
 
 
-# TODO:
+# CompletedTODO:
 # Create AzureChatOpenAI client, model to use `gpt-4.1-nano-2025-04-14` (or any other mini or nano models)
 
 azure_llm = AzureChatOpenAI(
@@ -249,7 +249,7 @@ def main():
 
 main()
 
-# TODO:
+# CompletedTODO:
 # ---------
 # Create guardrail that will prevent leaks of PII (output guardrail) in streaming mode.
 # Flow:
