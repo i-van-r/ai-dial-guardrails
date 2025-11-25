@@ -242,7 +242,7 @@ def main():
             filtered_response += guardrail.process_chunk(val)
         filtered_response += guardrail.finalize()
         print(filtered_response)
-        messages.append(AIMessage(content=filtered_response))
+        messages.append(HumanMessage(content=filtered_response))
         chat_history.append(AIMessage(content=filtered_response))
         print("Input user request for LLM (type 'exit' to quit)> ", end="")
         user_input = input()
